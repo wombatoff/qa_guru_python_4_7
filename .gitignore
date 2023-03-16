@@ -1,5 +1,3 @@
-resources/*
-
 # Pycharm
 .idea/
 
@@ -133,3 +131,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+!/resources/
