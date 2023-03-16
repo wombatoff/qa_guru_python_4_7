@@ -24,7 +24,7 @@ def calculate_checksum(file):
     return file_hash.hexdigest()
 
 
-def test_files_checksum():
+def test_files():
     urls = [
         "https://github.com/qa-guru/qa_guru_python_4_7/raw/master/file_example_XLSX_10.xlsx",
         "https://github.com/qa-guru/qa_guru_python_4_7/raw/master/docs-pytest-org-en-latest.pdf",
