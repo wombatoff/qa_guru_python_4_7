@@ -16,6 +16,11 @@ def get_filename_from_url(url):
     return url.split("/")[-1]
 
 
+def create_directory_if_not_exists(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+
 def calculate_checksum(file):
     file.seek(0)
     file_hash = hashlib.md5()
@@ -31,6 +36,8 @@ def test_files():
         "https://github.com/qa-guru/qa_guru_python_4_7/raw/master/username.csv",
     ]
     files = [(download_file(url), get_filename_from_url(url)) for url in urls]
+
+    create_directory_if_not_exists("resources")
 
     with zipfile.ZipFile("resources/archive.zip", mode="w") as archive:
         for file, filename in files:
