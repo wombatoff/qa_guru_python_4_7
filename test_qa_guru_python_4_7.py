@@ -30,8 +30,8 @@ def test_files():
         "https://github.com/qa-guru/qa_guru_python_4_7/raw/master/docs-pytest-org-en-latest.pdf",
         "https://github.com/qa-guru/qa_guru_python_4_7/raw/master/username.csv",
     ]
-
     files = [(download_file(url), get_filename_from_url(url)) for url in urls]
+
     with zipfile.ZipFile("resources/archive.zip", mode="w") as archive:
         for file, filename in files:
             archive.writestr(filename, file.getvalue())
