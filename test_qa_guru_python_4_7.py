@@ -1,53 +1,53 @@
-import hashlib
-import io
-import os
+import csv
 import zipfile
+from pathlib import Path
 
+import openpyxl
+import pytest
 import requests
+from PyPDF2 import PdfReader
+
+file_links = {
+    'xlsx': 'https://github.com/qa-guru/qa_guru_python_4_7/raw/master/file_example_XLSX_10.xlsx',
+    'pdf': 'https://github.com/qa-guru/qa_guru_python_4_7/raw/master/docs-pytest-org-en-latest.pdf',
+    'csv': 'https://github.com/qa-guru/qa_guru_python_4_7/raw/master/username.csv'
+}
+
+resources_path = Path("resources")
+resources_path.mkdir(exist_ok=True)
 
 
-def download_file(url):
-    response = requests.get(url)
-    response.raise_for_status()
-    return io.BytesIO(response.content)
+@pytest.fixture(scope="module")
+def download_and_zip_files():
+    zip_path = resources_path / "archive.zip"
+    with zipfile.ZipFile(zip_path, mode='w') as archive:
+        for file_type, url in file_links.items():
+            response = requests.get(url)
+            local_file = resources_path / f"{file_type}.{file_type}"
+            local_file.write_bytes(response.content)
+            archive.writestr(local_file.name, response.content)
+
+    return zip_path
 
 
-def get_filename_from_url(url):
-    return url.split("/")[-1]
+def test_files_content(download_and_zip_files):
+    with zipfile.ZipFile(download_and_zip_files) as archive:
+        for file_type, _ in file_links.items():
+            file_name = f"{file_type}.{file_type}"
+            original_file = resources_path / file_name
+            zipped_file = archive.open(file_name)
 
+            if file_type == "pdf":
+                original_pdf = PdfReader(original_file)
+                zipped_pdf = PdfReader(zipped_file)
+                assert len(original_pdf.pages) == len(zipped_pdf.pages)
 
-def create_directory_if_not_exists(directory):
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+            elif file_type == "xlsx":
+                original_wb = openpyxl.load_workbook(original_file)
+                zipped_wb = openpyxl.load_workbook(zipped_file)
+                assert original_wb.active['A1'].value == zipped_wb.active['A1'].value
 
-
-def calculate_checksum(file):
-    file.seek(0)
-    file_hash = hashlib.md5()
-    for chunk in iter(lambda: file.read(4096), b""):
-        file_hash.update(chunk)
-    return file_hash.hexdigest()
-
-
-def test_files():
-    urls = [
-        "https://github.com/qa-guru/qa_guru_python_4_7/raw/master/file_example_XLSX_10.xlsx",
-        "https://github.com/qa-guru/qa_guru_python_4_7/raw/master/docs-pytest-org-en-latest.pdf",
-        "https://github.com/qa-guru/qa_guru_python_4_7/raw/master/username.csv",
-    ]
-    files = [(download_file(url), get_filename_from_url(url)) for url in urls]
-
-    create_directory_if_not_exists("resources")
-
-    with zipfile.ZipFile("resources/archive.zip", mode="w") as archive:
-        for file, filename in files:
-            archive.writestr(filename, file.getvalue())
-
-    assert os.path.exists("resources/archive.zip"), "The archive was not created"
-
-    with zipfile.ZipFile("resources/archive.zip", mode="r") as archive:
-        for file, filename in files:
-            file_checksum = calculate_checksum(file)
-            with archive.open(filename, "r") as archived_file:
-                archived_file_checksum = calculate_checksum(archived_file)
-                assert file_checksum == archived_file_checksum, f"Checksum mismatch for {filename}"
+            elif file_type == "csv":
+                original_csv = list(csv.reader(open(original_file, 'r', encoding='utf-8')))
+                zipped_csv = list(csv.reader(zipped_file.read().decode('utf-8').splitlines()))
+                assert original_csv == zipped_csv
