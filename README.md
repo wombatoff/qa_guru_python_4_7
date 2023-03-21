@@ -9,9 +9,6 @@
 
 ```
 git clone https://github.com/wombatoff/qa_guru_python_4_7
-```
-
-```
 cd qa_guru_python_4_7
 ```
 
